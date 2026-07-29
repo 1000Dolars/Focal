@@ -1,44 +1,52 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, radius, fontSize, shadow } from '../theme';
+import { useTheme, fontSize, tracking } from '../theme';
 
-// The StudyFlow IA brand mark: a rounded purple tile with a book emoji, plus the
-// "StudyFlow IA" wordmark (Study in dark, Flow in purple).
-export default function Logo({ size = 'large' }) {
-  const tile = size === 'large' ? 96 : 56;
+// The Focal mark: a ring with a solid centre — a focal point. Drawn with views
+// rather than an image so it inverts cleanly between themes.
+export default function Logo({ size = 'large', showWordmark = true }) {
+  const { colors } = useTheme();
+  const ring = size === 'large' ? 56 : 36;
+  const core = ring * 0.34;
   const word = size === 'large' ? fontSize.display : fontSize.xl;
 
   return (
     <View style={styles.wrap}>
       <View
         style={[
-          styles.tile,
-          { width: tile, height: tile, borderRadius: tile * 0.28 },
-          shadow.card,
+          styles.ring,
+          {
+            width: ring,
+            height: ring,
+            borderRadius: ring / 2,
+            borderColor: colors.text,
+            borderWidth: Math.max(2, ring * 0.055),
+          },
         ]}
       >
-        <Text style={{ fontSize: tile * 0.46 }}>📖</Text>
-        <Text style={[styles.spark, { fontSize: tile * 0.22 }]}>✨</Text>
+        <View
+          style={{
+            width: core,
+            height: core,
+            borderRadius: core / 2,
+            backgroundColor: colors.text,
+          }}
+        />
       </View>
 
-      <View style={styles.wordRow}>
-        <Text style={[styles.word, { fontSize: word, color: colors.textDark }]}>Study</Text>
-        <Text style={[styles.word, { fontSize: word, color: colors.primary }]}>Flow</Text>
-        <Text style={[styles.ia, { fontSize: word }]}> IA</Text>
-      </View>
+      {showWordmark ? (
+        <Text style={[styles.word, { color: colors.text, fontSize: word }]}>Focal</Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center' },
-  tile: {
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  ring: { alignItems: 'center', justifyContent: 'center' },
+  word: {
+    fontWeight: '700',
+    letterSpacing: tracking.tight,
+    marginTop: 18,
   },
-  spark: { position: 'absolute', top: 8, right: 10 },
-  wordRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
-  word: { fontWeight: '800', letterSpacing: 0.2 },
-  ia: { fontWeight: '800', color: colors.primaryLight },
 });

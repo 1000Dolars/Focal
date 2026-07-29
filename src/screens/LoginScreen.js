@@ -1,27 +1,19 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import ScreenContainer from '../components/ScreenContainer';
-import Logo from '../components/Logo';
 import Button from '../components/Button';
 import { useApp } from '../context/AppContext';
-import { colors, spacing, fontSize, radius } from '../theme';
+import { useTheme, spacing, fontSize, radius, tracking } from '../theme';
 
-// Simple sign-in: the user only enters a username. We store it and continue to
-// the personality step.
+// Sign-in is just a name — no password, no email, no account.
 export default function LoginScreen({ navigation }) {
+  const { colors } = useTheme();
   const { userName, setUserName } = useApp();
   const [name, setName] = useState(userName || '');
 
   const canContinue = name.trim().length >= 2;
 
-  const handleLogin = () => {
+  const handleContinue = () => {
     if (!canContinue) return;
     setUserName(name.trim());
     navigation.navigate('Personality');
@@ -33,41 +25,41 @@ export default function LoginScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
       >
-        <View style={styles.hero}>
-          <Logo size="large" />
-        </View>
-
-        <Text style={styles.title}>¡Bienvenido! 👋</Text>
-        <Text style={styles.subtitle}>
-          Ingresa tu nombre de usuario para comenzar a organizar tus estudios.
+        <Text
+          style={[styles.title, { color: colors.text }]}
+          accessibilityRole="header"
+          maxFontSizeMultiplier={1.3}
+        >
+          ¿Cómo te llamamos?
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+          Puede ser tu nombre o un apodo.
         </Text>
 
-        <Text style={styles.label}>Nombre de usuario</Text>
-        <View style={styles.inputRow}>
-          <Text style={styles.at}>@</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="tu_usuario"
-            placeholderTextColor={colors.textMuted}
-            style={styles.input}
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={20}
-            returnKeyType="go"
-            onSubmitEditing={handleLogin}
-          />
-        </View>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Tu nombre"
+          placeholderTextColor={colors.textMuted}
+          style={[styles.input, { backgroundColor: colors.surfaceAlt, color: colors.text }]}
+          autoCapitalize="words"
+          autoCorrect={false}
+          maxLength={20}
+          returnKeyType="go"
+          onSubmitEditing={handleContinue}
+          accessibilityLabel="Tu nombre"
+          accessibilityHint="Escribe el nombre con el que quieres que te llamemos"
+        />
 
         <Button
-          label="Iniciar sesión"
-          onPress={handleLogin}
+          label="Continuar"
+          onPress={handleContinue}
           disabled={!canContinue}
           style={styles.cta}
         />
 
-        <Text style={styles.note}>
-          No necesitas contraseña. Tu progreso se guarda en este dispositivo.
+        <Text style={[styles.note, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+          Sin contraseña ni correo. Tu nombre y tu progreso se guardan solo en este dispositivo.
         </Text>
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -75,51 +67,25 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, justifyContent: 'center', paddingTop: spacing.xxxl },
+  content: { flexGrow: 1, justifyContent: 'center' },
   flex: { flex: 1, justifyContent: 'center' },
-  hero: { alignItems: 'center', marginBottom: spacing.xxl },
   title: {
     fontSize: fontSize.xxl,
-    fontWeight: '800',
-    color: colors.textDark,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    lineHeight: 20,
-    paddingHorizontal: spacing.md,
-  },
-  label: {
-    fontSize: fontSize.sm,
     fontWeight: '700',
-    color: colors.textDark,
-    marginTop: spacing.xxxl,
-    marginBottom: spacing.sm,
+    letterSpacing: tracking.tight,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.inputBg,
+  subtitle: { fontSize: fontSize.sm, marginTop: spacing.sm },
+  input: {
+    height: 54,
     borderRadius: radius.md,
     paddingHorizontal: spacing.lg,
-    height: 52,
+    fontSize: fontSize.lg,
+    marginTop: spacing.xxl,
   },
-  at: { fontSize: fontSize.lg, fontWeight: '700', color: colors.textMuted },
-  input: {
-    flex: 1,
-    fontSize: fontSize.md,
-    color: colors.textDark,
-    marginLeft: spacing.sm,
-    height: '100%',
-  },
-  cta: { marginTop: spacing.xl },
+  cta: { marginTop: spacing.lg },
   note: {
     fontSize: fontSize.xs,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
+    lineHeight: 17,
   },
 });

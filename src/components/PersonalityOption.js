@@ -1,28 +1,47 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, fontSize, shadow } from '../theme';
+import { useTheme, radius, spacing, fontSize } from '../theme';
 
-// Selectable card on the "Elige tu personalidad" screen. Highlights with a
-// purple border + check when selected.
+// Selectable study style. Selection is shown by a filled radio and a stronger
+// border — no fills, no colour.
 export default function PersonalityOption({ option, selected, onPress }) {
+  const { colors } = useTheme();
+
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.7}
       onPress={onPress}
-      style={[styles.card, selected && styles.cardSelected]}
+      style={[
+        styles.card,
+        {
+          borderColor: selected ? colors.accent : colors.border,
+          backgroundColor: colors.surface,
+        },
+      ]}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: !!selected, checked: !!selected }}
+      accessibilityLabel={`${option.title}. ${option.description}`}
+      accessibilityHint={option.planSummary}
     >
-      <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
-        <Text style={styles.emoji}>{option.emoji}</Text>
+      <View
+        style={[
+          styles.radio,
+          { borderColor: selected ? colors.accent : colors.borderStrong },
+        ]}
+      >
+        {selected ? <View style={[styles.radioCore, { backgroundColor: colors.accent }]} /> : null}
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.title}>{option.title}</Text>
-        <Text style={styles.desc}>{option.description}</Text>
-      </View>
-
-      <View style={[styles.radio, selected && styles.radioSelected]}>
-        {selected ? <Ionicons name="checkmark" size={15} color={colors.white} /> : null}
+        <Text style={[styles.title, { color: colors.text }]} maxFontSizeMultiplier={1.3}>
+          {option.title}
+        </Text>
+        <Text style={[styles.desc, { color: colors.textSecondary }]} maxFontSizeMultiplier={1.3}>
+          {option.description}
+        </Text>
+        <Text style={[styles.plan, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+          {option.planSummary}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -31,41 +50,25 @@ export default function PersonalityOption({ option, selected, onPress }) {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
+    alignItems: 'flex-start',
     borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderWidth: 1,
     padding: spacing.lg,
     marginBottom: spacing.md,
-    ...shadow.soft,
   },
-  cardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: '#FBFAFF',
-  },
-  iconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: colors.inputBg,
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
+    marginTop: 2,
   },
-  iconWrapSelected: { backgroundColor: colors.primarySoft },
-  emoji: { fontSize: 24 },
-  body: { flex: 1, paddingRight: spacing.sm },
-  title: { fontSize: fontSize.md, fontWeight: '700', color: colors.textDark },
-  desc: { fontSize: fontSize.sm, color: colors.textMuted, marginTop: 2 },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  radioCore: { width: 10, height: 10, borderRadius: 5 },
+  body: { flex: 1 },
+  title: { fontSize: fontSize.md, fontWeight: '600' },
+  desc: { fontSize: fontSize.sm, marginTop: 3 },
+  plan: { fontSize: fontSize.xs, marginTop: 6 },
 });

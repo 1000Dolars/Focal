@@ -6,11 +6,11 @@ import PersonalityOption from '../components/PersonalityOption';
 import Button from '../components/Button';
 import { useApp } from '../context/AppContext';
 import { personalities } from '../data/seed';
-import { colors, spacing, fontSize } from '../theme';
+import { useTheme, spacing, fontSize, tracking } from '../theme';
 
-// "Elige tu personalidad" — sets the archetype that personalizes the plan, then
-// continues into the main app.
+// Picks the study rhythm, which genuinely changes how the plan is built.
 export default function PersonalityScreen({ navigation }) {
+  const { colors } = useTheme();
   const { personality, setPersonality } = useApp();
   const [selected, setSelected] = useState(personality || 'organizado');
 
@@ -21,10 +21,11 @@ export default function PersonalityScreen({ navigation }) {
 
   return (
     <ScreenContainer scroll edges={['top', 'bottom']}>
-      <ScreenHeader onBack={() => navigation.goBack()} title="" />
+      <ScreenHeader onBack={() => navigation.goBack()} title="¿Cómo estudias?" />
 
-      <Text style={styles.title}>Elige tu personalidad</Text>
-      <Text style={styles.subtitle}>Esto nos ayuda a crear un plan perfecto para ti.</Text>
+      <Text style={[styles.subtitle, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+        Esto define la duración de tus bloques y descansos. Puedes cambiarlo cuando quieras.
+      </Text>
 
       <View style={styles.list}>
         {personalities.map((option) => (
@@ -37,14 +38,17 @@ export default function PersonalityScreen({ navigation }) {
         ))}
       </View>
 
-      <Button label="Continuar" onPress={handleContinue} style={styles.cta} />
+      <Button label="Continuar" onPress={handleContinue} />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.textDark, marginTop: spacing.sm },
-  subtitle: { fontSize: fontSize.sm, color: colors.textMuted, marginTop: spacing.sm, lineHeight: 20 },
-  list: { marginTop: spacing.xl },
-  cta: { marginTop: spacing.sm },
+  subtitle: {
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+    marginTop: -spacing.sm,
+    letterSpacing: tracking.normal,
+  },
+  list: { marginTop: spacing.xl, marginBottom: spacing.lg },
 });

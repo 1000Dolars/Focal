@@ -1,22 +1,29 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors, radius, spacing, shadow } from '../theme';
+import { useTheme, radius, spacing } from '../theme';
 
-// Generic white rounded card with a soft shadow — the building block of most
-// surfaces in the design.
+// A surface defined by a hairline border rather than a shadow — flat surfaces
+// keep the layout quiet and behave identically in dark mode.
 export default function Card({ children, style, padded = true }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.card, padded && styles.padded, style]}>{children}</View>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        padded && styles.padded,
+        style,
+      ]}
+    >
+      {children}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.soft,
   },
   padded: { padding: spacing.lg },
 });

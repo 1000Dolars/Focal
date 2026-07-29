@@ -14,11 +14,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Button from './Button';
-import { URGENCY, urgencyOrder } from '../utils/urgency';
+import Chip from './Chip';
+import { useTheme, radius, spacing, fontSize, tracking } from '../theme';
+import { URGENCY, urgencyOrder, urgencyStyle } from '../utils/urgency';
 import { toDateKey, formatShortDate } from '../utils/time';
-import { colors, spacing, fontSize, radius } from '../theme';
 
-// Quick-pick durations (minutes) and due dates (days from today).
 const DURATIONS = [
   { label: '30m', value: 30 },
   { label: '1h', value: 60 },
@@ -29,7 +29,7 @@ const DUE_QUICK = [
   { label: 'Sin fecha', days: null },
   { label: 'Hoy', days: 0 },
   { label: 'Mañana', days: 1 },
-  { label: 'En 1 sem', days: 7 },
+  { label: '1 semana', days: 7 },
 ];
 
 function dayFromToday(days) {
@@ -39,20 +39,19 @@ function dayFromToday(days) {
   return d;
 }
 
-// Bottom-sheet popup to create a task. Holds all task fields: name,
-// description, duration, due date and urgency. Calls onAdd with a task object.
+// Bottom sheet holding every field of a new task.
 export default function AddTaskModal({ visible, onClose, onAdd }) {
+  const { colors } = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState(60);
   const [urgency, setUrgency] = useState('media');
-  const [dueDate, setDueDate] = useState(null); // Date | null
+  const [dueDate, setDueDate] = useState(null);
   const [showPicker, setShowPicker] = useState(false);
 
   const dueKey = dueDate ? toDateKey(dueDate) : null;
   const canAdd = title.trim().length > 0;
 
-  // Reset the form each time the modal opens.
   useEffect(() => {
     if (visible) {
       setTitle('');
@@ -79,9 +78,14 @@ export default function AddTaskModal({ visible, onClose, onAdd }) {
     onClose();
   };
 
+  const inputStyle = [
+    styles.input,
+    { backgroundColor: colors.surfaceAlt, color: colors.text },
+  ];
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
+      <TouchableWithoutFeedback onPress={onClose} accessible={false}>
         <View style={styles.backdrop} />
       </TouchableWithoutFeedback>
 
@@ -90,13 +94,26 @@ export default function AddTaskModal({ visible, onClose, onAdd }) {
         style={styles.sheetWrap}
         pointerEvents="box-none"
       >
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
+        <View
+          style={[styles.sheet, { backgroundColor: colors.bg, borderColor: colors.border }]}
+        >
+          <View style={[styles.handle, { backgroundColor: colors.borderStrong }]} />
 
           <View style={styles.headerRow}>
-            <Text style={styles.heading}>Nueva tarea</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={hit}>
-              <Ionicons name="close" size={24} color={colors.textMuted} />
+            <Text
+              style={[styles.heading, { color: colors.text }]}
+              accessibilityRole="header"
+              maxFontSizeMultiplier={1.3}
+            >
+              Nueva tarea
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={hit}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar sin guardar"
+            >
+              <Ionicons name="close" size={22} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
@@ -105,77 +122,66 @@ export default function AddTaskModal({ visible, onClose, onAdd }) {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scroll}
           >
-            {/* Name */}
-            <Text style={styles.label}>Nombre de la tarea</Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="Ej. Matemáticas"
+              placeholder="¿Qué necesitas estudiar?"
               placeholderTextColor={colors.textMuted}
-              style={styles.input}
+              style={[...inputStyle, styles.titleInput]}
               autoFocus
               returnKeyType="next"
+              maxLength={80}
+              accessibilityLabel="Nombre de la tarea"
             />
 
-            {/* Description */}
-            <Text style={styles.label}>Descripción</Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="Detalles de la tarea (opcional)"
+              placeholder="Notas (opcional)"
               placeholderTextColor={colors.textMuted}
-              style={[styles.input, styles.textArea]}
+              style={[...inputStyle, styles.textArea]}
               multiline
-              numberOfLines={3}
               textAlignVertical="top"
+              maxLength={500}
+              accessibilityLabel="Descripción de la tarea, opcional"
             />
 
-            {/* Duration */}
-            <Text style={styles.label}>Duración</Text>
+            <Label>Duración</Label>
             <View style={styles.chipRow}>
-              {DURATIONS.map((d) => {
-                const active = duration === d.value;
-                return (
-                  <TouchableOpacity
-                    key={d.value}
-                    onPress={() => setDuration(d.value)}
-                    style={[styles.chip, active && styles.chipActive]}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                      {d.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {DURATIONS.map((d) => (
+                <Chip
+                  key={d.value}
+                  label={d.label}
+                  selected={duration === d.value}
+                  onPress={() => setDuration(d.value)}
+                  accessibilityLabel={`Duración ${d.label}`}
+                  role="radio"
+                />
+              ))}
             </View>
 
-            {/* Due date */}
-            <Text style={styles.label}>Día de entrega</Text>
+            <Label>Entrega</Label>
             <View style={styles.chipRow}>
               {DUE_QUICK.map((q) => {
                 const key = q.days === null ? null : toDateKey(dayFromToday(q.days));
-                const active = dueKey === key;
                 return (
-                  <TouchableOpacity
+                  <Chip
                     key={q.label}
+                    label={q.label}
+                    selected={dueKey === key}
                     onPress={() => setDueDate(q.days === null ? null : dayFromToday(q.days))}
-                    style={[styles.chip, active && styles.chipActive]}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                      {q.label}
-                    </Text>
-                  </TouchableOpacity>
+                    accessibilityLabel={`Entrega: ${q.label}`}
+                    role="radio"
+                  />
                 );
               })}
-              <TouchableOpacity
+              <Chip
+                label={dueDate ? formatShortDate(dueDate) : 'Otra fecha'}
+                icon="calendar-outline"
+                selected={false}
                 onPress={() => setShowPicker(true)}
-                style={[styles.chip, styles.dateChip]}
-              >
-                <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-                <Text style={[styles.chipText, styles.chipTextActive, styles.dateChipText]}>
-                  {dueDate ? formatShortDate(dueDate) : 'Otro'}
-                </Text>
-              </TouchableOpacity>
+                accessibilityLabel="Elegir otra fecha de entrega en el calendario"
+              />
             </View>
 
             {showPicker && (
@@ -186,40 +192,41 @@ export default function AddTaskModal({ visible, onClose, onAdd }) {
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   minimumDate={new Date()}
                   onChange={onPickDate}
+                  themeVariant={colors.scheme}
                 />
                 {Platform.OS === 'ios' && (
-                  <TouchableOpacity style={styles.iosDone} onPress={() => setShowPicker(false)}>
-                    <Text style={styles.iosDoneText}>Listo</Text>
+                  <TouchableOpacity
+                    style={styles.iosDone}
+                    onPress={() => setShowPicker(false)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirmar fecha de entrega"
+                  >
+                    <Text style={[styles.iosDoneText, { color: colors.text }]}>Listo</Text>
                   </TouchableOpacity>
                 )}
               </View>
             )}
 
-            {/* Urgency */}
-            <Text style={styles.label}>Nivel de urgencia</Text>
+            <Label>Urgencia</Label>
             <View style={styles.chipRow}>
               {urgencyOrder.map((id) => {
-                const u = URGENCY[id];
-                const active = urgency === id;
+                const u = urgencyStyle(colors, id);
                 return (
-                  <TouchableOpacity
+                  <Chip
                     key={id}
+                    label={URGENCY[id].label}
+                    selected={urgency === id}
                     onPress={() => setUrgency(id)}
-                    style={[
-                      styles.chip,
-                      styles.urgChip,
-                      active && { backgroundColor: u.bg, borderColor: u.color },
-                    ]}
-                  >
-                    <View style={[styles.urgDot, { backgroundColor: u.color }]} />
-                    <Text style={[styles.chipText, active && { color: u.color }]}>{u.label}</Text>
-                  </TouchableOpacity>
+                    accessibilityLabel={`Urgencia ${URGENCY[id].label}`}
+                    role="radio"
+                    dot={{ bg: u.dotBg, border: u.dotBorder }}
+                  />
                 );
               })}
             </View>
 
             <Button
-              label="Agregar tarea"
+              label="Añadir tarea"
               onPress={handleAdd}
               disabled={!canAdd}
               style={styles.cta}
@@ -231,77 +238,67 @@ export default function AddTaskModal({ visible, onClose, onAdd }) {
   );
 }
 
-const hit = { top: 10, bottom: 10, left: 10, right: 10 };
+function Label({ children }) {
+  const { colors } = useTheme();
+  return (
+    <Text style={[styles.label, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+      {children}
+    </Text>
+  );
+}
+
+const hit = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const styles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(30,25,55,0.45)' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     paddingBottom: spacing.xl,
-    maxHeight: '88%',
+    maxHeight: '90%',
   },
   handle: {
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.border,
+    width: 36,
+    height: 4,
+    borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  heading: { fontSize: fontSize.xl, fontWeight: '800', color: colors.textDark },
+  heading: { fontSize: fontSize.xl, fontWeight: '700', letterSpacing: tracking.tight },
   scroll: { paddingBottom: spacing.lg },
+
+  input: {
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 11,
+    fontSize: fontSize.md,
+  },
+  titleInput: { fontWeight: '500' },
+  textArea: { minHeight: 78, paddingTop: 13, marginTop: spacing.md },
 
   label: {
     fontSize: fontSize.xs,
-    fontWeight: '700',
-    color: colors.textMuted,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+    fontWeight: '600',
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+    letterSpacing: tracking.wide,
+    textTransform: 'uppercase',
   },
-  input: {
-    backgroundColor: colors.inputBg,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
-    fontSize: fontSize.md,
-    color: colors.textDark,
-  },
-  textArea: { minHeight: 72, paddingTop: 12 },
-
   chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  chipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-  chipText: { fontSize: fontSize.sm, color: colors.textBody, fontWeight: '600' },
-  chipTextActive: { color: colors.primary },
-  dateChip: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  dateChipText: { marginLeft: 5 },
-  urgChip: {},
-  urgDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
 
-  pickerWrap: { alignItems: 'center', marginBottom: spacing.sm },
+  pickerWrap: { alignItems: 'center', marginTop: spacing.md },
   iosDone: { alignSelf: 'flex-end', paddingVertical: spacing.sm, paddingHorizontal: spacing.lg },
-  iosDoneText: { color: colors.primary, fontWeight: '700', fontSize: fontSize.md },
+  iosDoneText: { fontWeight: '600', fontSize: fontSize.md },
 
-  cta: { marginTop: spacing.xl },
+  cta: { marginTop: spacing.xxl },
 });

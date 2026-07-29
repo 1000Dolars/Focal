@@ -1,0 +1,53 @@
+name: Compilar APK
+
+# Se dispara al publicar una etiqueta de version (v1.0.1, v1.1.0, ...)
+# o manualmente desde la pestana Actions.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build en EAS y publicar Release
+    runs-on: ubuntu-latest
+
+    # Necesario para que la accion pueda crear el Release.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Preparar EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # --wait bloquea hasta que EAS termina; --output descarga el APK aqui.
+      - name: Compilar el APK
+        run: eas build --platform android --profile preview --non-interactive --wait --output=focal.apk
+
+      - name: Adjuntar el APK al Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: focal.apk
+          generate_release_notes: true
+          body: |
+            ## Focal ${{ github.ref_name }}
+
+            Descarga `focal.apk` desde este release e instalalo en tu telefono
+            Android. Instrucciones paso a paso en la
+            [pagina de descarga](https://1000dolars.github.io/focal/).

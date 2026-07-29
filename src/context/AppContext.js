@@ -1,124 +1,145 @@
-import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
-import { seedTasks, seedFriends, friendEmojis } from '../data/seed';
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
+import { seedTasks } from '../data/seed';
 import { generateSchedule } from '../utils/schedule';
-import { totalMinutes } from '../utils/time';
-import { pastelOrder } from '../theme/colors';
+import { totalMinutes, todayKey } from '../utils/time';
+import { createId } from '../utils/id';
+import { loadState, saveState, clearState } from '../utils/storage';
 
-// Single source of truth for app state: the user, their tasks, the derived
-// schedule, gamification points, friends (leaderboard) and donation history.
-// Kept in React Context so every screen stays in sync without prop drilling.
+// Single source of truth: the user, their tasks, the derived schedule, points
+// and completion history. All state is persisted locally and restored on launch.
 
 const AppContext = createContext(null);
 
-const POINTS_PER_TASK = 40; // completing a task rewards points (gamification)
+const POINTS_PER_TASK = 40; // completing a task rewards points
 
-let idCounter = 100;
-const nextId = (p = 't') => `${p}${idCounter++}`;
+const DEFAULTS = {
+  userName: '',
+  personality: 'organizado',
+  tasks: seedTasks,
+  history: {}, // { 'YYYY-MM-DD': completedCount }
+};
 
 export function AppProvider({ children }) {
-  const [userName, setUserName] = useState(''); // set at login
-  const [personality, setPersonality] = useState('organizado');
-  const [tasks, setTasks] = useState(seedTasks);
-  const [points, setPoints] = useState(120);
-  const [friends, setFriends] = useState(seedFriends);
-  const [donations, setDonations] = useState([]);
+  const [userName, setUserName] = useState(DEFAULTS.userName);
+  const [personality, setPersonality] = useState(DEFAULTS.personality);
+  const [tasks, setTasks] = useState(DEFAULTS.tasks);
+  const [history, setHistory] = useState(DEFAULTS.history);
+  const [hydrated, setHydrated] = useState(false);
+
+  // --- Hydration ----------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await loadState(); // never throws
+      if (!cancelled && saved) {
+        if (typeof saved.userName === 'string') setUserName(saved.userName);
+        if (typeof saved.personality === 'string') setPersonality(saved.personality);
+        if (Array.isArray(saved.tasks)) setTasks(saved.tasks);
+        if (saved.history && typeof saved.history === 'object') setHistory(saved.history);
+      }
+      if (!cancelled) setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // --- Persistence --------------------------------------------------------
+  const saveTimer = useRef(null);
+  useEffect(() => {
+    if (!hydrated) return; // never overwrite saved data with defaults
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveState({ userName, personality, tasks, history });
+    }, 400);
+    return () => clearTimeout(saveTimer.current);
+  }, [hydrated, userName, personality, tasks, history]);
 
   // --- Task actions -------------------------------------------------------
   const addTask = useCallback((task) => {
-    // Accepts an object: { title, description, duration, urgency, dueDate }.
     const { title, description = '', duration = 60, urgency = 'media', dueDate = null } =
       task || {};
     const trimmed = (title || '').trim();
     if (!trimmed) return;
-    setTasks((prev) => {
-      const color = pastelOrder[prev.length % pastelOrder.length];
-      return [
-        ...prev,
-        {
-          id: nextId('t'),
-          title: trimmed,
-          description: (description || '').trim(),
-          duration: duration || 60,
-          icon: '📒',
-          done: false,
-          color,
-          urgency,
-          dueDate,
-        },
-      ];
-    });
+    setTasks((prev) => [
+      ...prev,
+      {
+        id: createId('t'),
+        title: trimmed.slice(0, 80),
+        description: (description || '').trim().slice(0, 500),
+        duration: duration || 60,
+        done: false,
+        urgency,
+        dueDate,
+      },
+    ]);
   }, []);
 
+  // Pure state update — points are derived, so no side effect belongs here.
   const toggleTask = useCallback((id) => {
+    let becameDone = false;
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id !== id) return t;
-        const done = !t.done;
-        // Award or remove points to keep the counter honest.
-        setPoints((p) => Math.max(0, p + (done ? POINTS_PER_TASK : -POINTS_PER_TASK)));
-        return { ...t, done };
+        becameDone = !t.done;
+        return { ...t, done: becameDone };
       })
     );
+    setHistory((prev) => {
+      const key = todayKey();
+      const current = prev[key] || 0;
+      return { ...prev, [key]: Math.max(0, current + (becameDone ? 1 : -1)) };
+    });
   }, []);
 
   const removeTask = useCallback((id) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  // --- Friends (leaderboard) ---------------------------------------------
-  const addFriend = useCallback((name) => {
-    const trimmed = (name || '').trim();
-    if (!trimmed) return;
-    setFriends((prev) => {
-      const emoji = friendEmojis[prev.length % friendEmojis.length];
-      // New friends start with a small random score so the ranking stays lively.
-      const startPoints = 40 + Math.floor(Math.random() * 180);
-      return [...prev, { id: nextId('f'), name: trimmed, points: startPoints, emoji }];
-    });
-  }, []);
-
-  const removeFriend = useCallback((id) => {
-    setFriends((prev) => prev.filter((f) => f.id !== id));
-  }, []);
-
-  // --- Donations ----------------------------------------------------------
-  const addDonation = useCallback((amount) => {
-    if (!amount || amount <= 0) return;
-    setDonations((prev) => [
-      { id: `d${Date.now()}`, amount, date: new Date().toISOString() },
-      ...prev,
-    ]);
+  // --- Data management ----------------------------------------------------
+  const resetAllData = useCallback(async () => {
+    await clearState();
+    setUserName(DEFAULTS.userName);
+    setPersonality(DEFAULTS.personality);
+    setTasks(DEFAULTS.tasks);
+    setHistory(DEFAULTS.history);
   }, []);
 
   // --- Derived values -----------------------------------------------------
-  const schedule = useMemo(() => generateSchedule(tasks), [tasks]);
+  // Derived from completed tasks, so points can't be farmed by completing and
+  // then deleting a task, and can never be double-counted.
+  const points = useMemo(
+    () => tasks.filter((t) => t.done).length * POINTS_PER_TASK,
+    [tasks]
+  );
+
+  const schedule = useMemo(
+    () => generateSchedule(tasks, { personality }),
+    [tasks, personality]
+  );
 
   const summary = useMemo(
     () => ({
       taskCount: tasks.length,
-      studyMinutes: totalMinutes(tasks),
+      pending: tasks.filter((t) => !t.done).length,
+      studyMinutes: totalMinutes(tasks.filter((t) => !t.done)),
       completed: tasks.filter((t) => t.done).length,
       points,
     }),
     [tasks, points]
   );
 
-  // Leaderboard: friends + the current user, ranked by points (desc).
-  const leaderboard = useMemo(() => {
-    const me = {
-      id: 'me',
-      name: userName || 'Tú',
-      points,
-      emoji: '🧑‍🎓',
-      isMe: true,
-    };
-    return [...friends, me]
-      .sort((a, b) => b.points - a.points)
-      .map((entry, i) => ({ ...entry, rank: i + 1 }));
-  }, [friends, points, userName]);
-
   const value = useMemo(
     () => ({
+      hydrated,
       userName,
       setUserName,
       personality,
@@ -130,14 +151,11 @@ export function AppProvider({ children }) {
       schedule,
       summary,
       points,
-      friends,
-      addFriend,
-      removeFriend,
-      leaderboard,
-      donations,
-      addDonation,
+      history,
+      resetAllData,
     }),
     [
+      hydrated,
       userName,
       personality,
       tasks,
@@ -147,12 +165,8 @@ export function AppProvider({ children }) {
       schedule,
       summary,
       points,
-      friends,
-      addFriend,
-      removeFriend,
-      leaderboard,
-      donations,
-      addDonation,
+      history,
+      resetAllData,
     ]
   );
 

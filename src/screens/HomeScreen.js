@@ -2,164 +2,172 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenContainer from '../components/ScreenContainer';
-import SummaryCard from '../components/SummaryCard';
-import Button from '../components/Button';
+import Stat from '../components/Stat';
 import { useApp } from '../context/AppContext';
-import { formatDuration } from '../utils/time';
-import { colors, spacing, fontSize, radius, shadow } from '../theme';
+import { formatDuration, formatClock } from '../utils/time';
+import { personalities } from '../data/seed';
+import { useTheme, spacing, fontSize, radius, tracking } from '../theme';
 
-// "Inicio" — greeting, the smart-schedule call to action, today's summary
-// (tasks / study time / points) and the donations banner.
+// Home — a greeting, today's figures and the next block. Deliberately sparse:
+// the point is to answer "what now?" without any noise.
 export default function HomeScreen({ navigation }) {
-  const { userName, summary } = useApp();
+  const { colors } = useTheme();
+  const { userName, summary, personality, schedule } = useApp();
+  const style = personalities.find((p) => p.id === personality) || personalities[0];
+  const nextBlock = schedule.find((b) => b.type === 'study');
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
 
   return (
     <ScreenContainer scroll>
-      {/* Top bar with menu + notifications */}
-      <View style={styles.topBar}>
-        <TouchableOpacity hitSlop={hit}>
-          <Ionicons name="menu" size={26} color={colors.textDark} />
-        </TouchableOpacity>
-        <TouchableOpacity hitSlop={hit}>
-          <View>
-            <Ionicons name="notifications-outline" size={24} color={colors.textDark} />
-            <View style={styles.dot} />
-          </View>
-        </TouchableOpacity>
+      <View style={styles.header}>
+        <Text style={[styles.greeting, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+          {greeting}
+        </Text>
+        <Text
+          style={[styles.name, { color: colors.text }]}
+          maxFontSizeMultiplier={1.3}
+          accessibilityRole="header"
+        >
+          {userName || 'Hola'}
+        </Text>
       </View>
 
-      <Text style={styles.hello}>¡Hola, {userName}! 👋</Text>
-      <Text style={styles.prompt}>¿Qué quieres hacer hoy?</Text>
-
-      {/* Smart schedule CTA card */}
-      <View style={styles.heroCard}>
-        <View style={styles.heroText}>
-          <Text style={styles.heroTitle}>Crea tu cronograma inteligente ✨</Text>
-          <Text style={styles.heroSubtitle}>
-            Organizamos tus tareas según tu personalidad y hábitos.
-          </Text>
-          <Button
-            label="Comenzar"
-            variant="primary"
-            full={false}
-            style={styles.heroBtn}
-            onPress={() => navigation.navigate('Cronograma')}
-          />
-        </View>
-        <Text style={styles.mascot}>🧠</Text>
-      </View>
-
-      {/* Today's summary */}
-      <Text style={styles.sectionTitle}>Resumen de hoy</Text>
-      <View style={styles.summaryRow}>
-        <SummaryCard
-          emoji="📚"
-          value={summary.taskCount}
-          label="Tareas"
-          tint={colors.pastels.blue.bg}
+      {/* Today's figures */}
+      <View style={[styles.statsRow, { borderColor: colors.border }]}>
+        <Stat
+          value={summary.pending}
+          label="Pendientes"
+          accessibilityLabel={`${summary.pending} tareas pendientes`}
         />
-        <View style={styles.gap} />
-        <SummaryCard
-          emoji="⏱️"
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <Stat
           value={formatDuration(summary.studyMinutes)}
-          label="Estudio"
-          tint={colors.pastels.green.bg}
+          label="Por estudiar"
+          accessibilityLabel={`${formatDuration(summary.studyMinutes)} por estudiar`}
         />
-        <View style={styles.gap} />
-        <SummaryCard
-          emoji="⭐"
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <Stat
           value={summary.points}
           label="Puntos"
-          tint={colors.pastels.yellow.bg}
+          accessibilityLabel={`${summary.points} puntos`}
         />
       </View>
 
-      {/* Donations banner */}
+      {/* Next up */}
+      <Text style={[styles.sectionLabel, { color: colors.textMuted }]} accessibilityRole="header">
+        A continuación
+      </Text>
+
+      {nextBlock ? (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('Plan')}
+          style={[styles.nextCard, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Siguiente: ${nextBlock.title} a las ${formatClock(nextBlock.start)}. Ver el plan completo`}
+        >
+          <View style={styles.nextBody}>
+            <Text style={[styles.nextTime, { color: colors.textMuted }]}>
+              {formatClock(nextBlock.start)} – {formatClock(nextBlock.end)}
+            </Text>
+            <Text
+              style={[styles.nextTitle, { color: colors.text }]}
+              numberOfLines={2}
+              maxFontSizeMultiplier={1.3}
+            >
+              {nextBlock.title}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+      ) : (
+        <View style={[styles.empty, { borderColor: colors.border }]}>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            {summary.taskCount === 0
+              ? 'Aún no has añadido tareas.'
+              : 'Todo completado. Buen trabajo.'}
+          </Text>
+        </View>
+      )}
+
+      {/* Study style */}
+      <Text style={[styles.sectionLabel, { color: colors.textMuted }]} accessibilityRole="header">
+        Tu ritmo
+      </Text>
       <TouchableOpacity
-        activeOpacity={0.9}
-        style={styles.donateCard}
-        onPress={() => navigation.navigate('Donations')}
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('Ajustes')}
+        style={[styles.styleRow, { borderColor: colors.border }]}
+        accessibilityRole="button"
+        accessibilityLabel={`Ritmo actual: ${style.title}. ${style.planSummary}. Tocar para cambiar`}
       >
-        <View style={styles.donateIcon}>
-          <Ionicons name="heart" size={22} color={colors.white} />
+        <View style={styles.nextBody}>
+          <Text style={[styles.styleTitle, { color: colors.text }]}>{style.title}</Text>
+          <Text style={[styles.styleDesc, { color: colors.textMuted }]}>{style.planSummary}</Text>
         </View>
-        <View style={styles.donateText}>
-          <Text style={styles.donateTitle}>Donaciones</Text>
-          <Text style={styles.donateSubtitle}>Apoya nuestro proyecto</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.white} />
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </TouchableOpacity>
     </ScreenContainer>
   );
 }
 
-const hit = { top: 8, bottom: 8, left: 8, right: 8 };
-
 const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
+  header: { paddingTop: spacing.xxl, paddingBottom: spacing.xl },
+  greeting: { fontSize: fontSize.sm },
+  name: {
+    fontSize: fontSize.display,
+    fontWeight: '700',
+    letterSpacing: tracking.tight,
+    marginTop: 2,
   },
-  dot: {
-    position: 'absolute',
-    top: -1,
-    right: -1,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: colors.pink,
-    borderWidth: 1.5,
-    borderColor: colors.background,
-  },
-  hello: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.textDark, marginTop: spacing.sm },
-  prompt: { fontSize: fontSize.md, color: colors.textMuted, marginTop: 4 },
 
-  heroCard: {
+  statsRow: {
     flexDirection: 'row',
-    backgroundColor: colors.cardPurple,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    marginTop: spacing.xl,
     alignItems: 'center',
-    ...shadow.card,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: spacing.xl,
   },
-  heroText: { flex: 1, paddingRight: spacing.sm },
-  heroTitle: { fontSize: fontSize.lg, fontWeight: '800', color: colors.white },
-  heroSubtitle: { fontSize: fontSize.sm, color: '#EFEAFF', marginTop: 6, lineHeight: 19 },
-  heroBtn: { backgroundColor: colors.white, marginTop: spacing.lg, paddingVertical: 11 },
-  mascot: { fontSize: 52, marginLeft: spacing.sm },
+  divider: { width: 1, alignSelf: 'stretch', marginHorizontal: spacing.md },
 
-  sectionTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '800',
-    color: colors.textDark,
+  sectionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    letterSpacing: tracking.wide,
+    textTransform: 'uppercase',
     marginTop: spacing.xxl,
     marginBottom: spacing.md,
   },
-  summaryRow: { flexDirection: 'row' },
-  gap: { width: spacing.md },
 
-  donateCard: {
+  nextCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.pink,
+    borderWidth: 1,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    marginTop: spacing.xl,
-    ...shadow.soft,
   },
-  donateIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+  nextBody: { flex: 1 },
+  nextTime: { fontSize: fontSize.xs, fontVariant: ['tabular-nums'] },
+  nextTitle: { fontSize: fontSize.lg, fontWeight: '600', marginTop: 4 },
+
+  empty: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    borderStyle: 'dashed',
+    padding: spacing.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
   },
-  donateText: { flex: 1 },
-  donateTitle: { fontSize: fontSize.md, fontWeight: '800', color: colors.white },
-  donateSubtitle: { fontSize: fontSize.sm, color: '#FFE3F0', marginTop: 2 },
+  emptyText: { fontSize: fontSize.sm },
+
+  styleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+  },
+  styleTitle: { fontSize: fontSize.md, fontWeight: '600' },
+  styleDesc: { fontSize: fontSize.xs, marginTop: 3 },
 });
