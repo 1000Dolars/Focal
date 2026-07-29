@@ -14,16 +14,13 @@ Construida con **React Native + Expo (SDK 56)**.
 Requisitos: **Node.js 18+** y la app **Expo Go**.
 
 ```bash
-cd StudyFlowIA
+cd Focal
 npm install
 npm start
 ```
 
 - **Teléfono:** escanea el QR con Expo Go (Android) o la cámara (iOS).
 - **Emulador Android:** pulsa `a` · **Simulador iOS (macOS):** pulsa `i`.
-
-> El directorio del proyecto aún se llama `StudyFlowIA` por el nombre anterior.
-> Puedes renombrarlo a `Focal` sin tocar el código.
 
 ---
 
@@ -33,6 +30,12 @@ Se compila en la nube (**EAS Build**), sin necesidad del SDK de Android local.
 
 ```bash
 npm run build:apk
+```
+
+O publica una versión y deja que GitHub Actions lo haga solo:
+
+```bash
+git tag v1.0.1 && git push --tags
 ```
 
 `preview` produce un **APK** instalable; `npm run build:aab` genera el **AAB** para

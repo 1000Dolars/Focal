@@ -1,8 +1,8 @@
 # Auditoría pre-lanzamiento — Focal v1.0.0
 
-> **Nota (28 jul 2026):** la app se auditó como *StudyFlow IA*. Después se rehízo
-> por completo y pasó a llamarse **Focal**. Los hallazgos siguen siendo válidos —
-> el rediseño resolvió varios de los pendientes; ver «Cambios del rediseño» abajo.
+> **Nota:** esta auditoría se realizó sobre una versión anterior de la app, antes
+> del rediseño. Los hallazgos siguen siendo válidos; el rediseño resolvió varios
+> de los pendientes. Ver «Cambios del rediseño» abajo.
 
 
 **Fecha:** 27 de julio de 2026
@@ -49,7 +49,7 @@ Al revisar la propia remediación aparecieron tres defectos nuevos, ya corregido
 | R2 | Tras «Borrar todos mis datos» el usuario quedaba dentro de la app sin nombre de usuario. | 🟡 Medio | ✅ Vuelve a Onboarding con `navigation.reset` |
 | R3 | 1 de 23 controles (botón «Listo» del calendario en iOS) seguía sin accesibilidad. | 🟡 Medio | ✅ 23/23 verificado por script |
 
-### Cambios del rediseño (28 jul 2026) — de StudyFlow IA a Focal
+### Cambios del rediseño
 
 | # | Pendiente anterior | Estado tras el rediseño |
 |---|---|---|
@@ -60,8 +60,8 @@ Al revisar la propia remediación aparecieron tres defectos nuevos, ya corregido
 | M4 | Contraste | ✅ Re-verificado en ambos temas (mín. 4.8:1 claro, 5.7:1 oscuro) |
 | — | Urgencia por color | ✅ Ahora se codifica con relleno y peso: también funciona para daltonismo |
 
-También cambió el identificador Android (`com.studyflow.ia` → `com.focal.studyapp`),
-por lo que Android lo trata como una app nueva, con **keystore propio**.
+El identificador Android es `com.focal.studyapp`, con keystore propio gestionado
+por EAS.
 
 **Pendiente (requiere decisión o dispositivo):** M1 i18n · B3 crash reporting ·
 B6 tests en el repo · B8 metadata de tienda · **Fase 4 completa** (pruebas en
@@ -218,7 +218,7 @@ app no recoge datos:
 
 **Solución recomendada:**
 1. Publicar una política simple (basta una página en GitHub Pages) que declare con
-   honestidad: *"StudyFlow IA almacena tus tareas y tu nombre de usuario únicamente en tu
+   honestidad: *"Focal almacena tus tareas y tu nombre de usuario únicamente en tu
    dispositivo. No recopilamos, transmitimos ni compartimos datos personales. No usamos
    analítica ni publicidad. Para borrar tus datos, desinstala la app."*
 2. Añadir en Perfil enlaces a **Política de privacidad** y **Términos de uso**.
@@ -434,7 +434,7 @@ Recomiendo **(b) + (a)**: implementar la modulación real y aun así no llamarlo
 
 | # | Problema | Solución |
 |---|---|---|
-| **B1** | `scheme: "studyflowia"` declarado pero sin deep links implementados. | Implementarlos o quitar el `scheme`. |
+| **B1** | `scheme: "focal"` declarado pero sin deep links implementados. | Implementarlos o quitar el `scheme`. |
 | **B2** | `scripts/make-assets.js` (generador de placeholders) sigue en el repo. | Eliminar tras crear los assets reales (C4). |
 | **B3** | Sin crash reporting ni analítica. | `sentry-expo` — sin visibilidad, los crashes en producción son invisibles. Declararlo en privacidad. |
 | **B4** | **Emojis como iconografía** en logo, materias y avatares. | Renderizan distinto en cada OS/versión y algunos no existen en Android antiguo. Migrar a SVG (`react-native-svg`). |
