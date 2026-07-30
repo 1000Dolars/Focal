@@ -5,50 +5,48 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import TasksScreen from '../screens/TasksScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
-import FriendsScreen from '../screens/FriendsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import { colors, fontSize } from '../theme';
+import SettingsScreen from '../screens/SettingsScreen';
+import { useTheme, fontSize } from '../theme';
 
 const Tab = createBottomTabNavigator();
 
-// Bottom navigation present on every main screen:
-// Inicio · Tareas · Cronograma · Amigos · Perfil.
+// Four destinations: Hoy · Tareas · Plan · Ajustes.
+// Profile folded into Ajustes; the friends leaderboard is gone.
 const ICONS = {
-  Inicio: 'home',
-  Tareas: 'checkbox',
-  Cronograma: 'calendar',
-  Amigos: 'trophy',
-  Perfil: 'person',
+  Hoy: 'ellipse',
+  Tareas: 'checkmark-circle',
+  Plan: 'calendar',
+  Ajustes: 'settings',
 };
 
 export default function TabNavigator() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: fontSize.xs, fontWeight: '600', marginBottom: 4 },
+        tabBarLabelStyle: { fontSize: fontSize.xs - 1, fontWeight: '500', marginBottom: 4 },
         tabBarStyle: {
-          backgroundColor: colors.surface,
+          backgroundColor: colors.bg,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 84 : 64,
-          paddingTop: 6,
+          height: Platform.OS === 'ios' ? 84 : 62,
+          paddingTop: 8,
+          elevation: 0,
         },
-        tabBarIcon: ({ color, size, focused }) => {
+        tabBarIcon: ({ color, focused }) => {
           const name = ICONS[route.name];
-          return (
-            <Ionicons name={focused ? name : `${name}-outline`} size={size - 2} color={color} />
-          );
+          return <Ionicons name={focused ? name : `${name}-outline`} size={20} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Inicio" component={HomeScreen} />
+      <Tab.Screen name="Hoy" component={HomeScreen} />
       <Tab.Screen name="Tareas" component={TasksScreen} />
-      <Tab.Screen name="Cronograma" component={ScheduleScreen} />
-      <Tab.Screen name="Amigos" component={FriendsScreen} />
-      <Tab.Screen name="Perfil" component={ProfileScreen} />
+      <Tab.Screen name="Plan" component={ScheduleScreen} />
+      <Tab.Screen name="Ajustes" component={SettingsScreen} />
     </Tab.Navigator>
   );
 }

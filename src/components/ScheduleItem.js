@@ -1,60 +1,93 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, radius, spacing, fontSize } from '../theme';
-import { formatClock } from '../utils/time';
+import { useTheme, radius, spacing, fontSize } from '../theme';
+import { formatClock, formatDuration } from '../utils/time';
 
-// A timeline entry on the "Mi cronograma" screen: the start time on the left,
-// and a pastel block (left accent bar + title + time range) on the right.
+// A timeline entry: the start time in a fixed left gutter, then the block.
+// Study and break blocks are told apart by fill and weight, not colour.
 export default function ScheduleItem({ block }) {
-  const pastel = colors.pastels[block.color] || colors.pastels.blue;
+  const { colors } = useTheme();
+  const isBreak = block.type === 'break';
+  const minutes = block.end - block.start;
 
   return (
     <View style={styles.row}>
-      <Text style={styles.time}>{formatClock(block.start)}</Text>
+      <Text style={[styles.time, { color: colors.textMuted }]} maxFontSizeMultiplier={1.2}>
+        {formatClock(block.start)}
+      </Text>
 
-      <View style={[styles.block, { backgroundColor: pastel.bg }]}>
-        <View style={[styles.accent, { backgroundColor: pastel.accent }]} />
-        <View style={styles.content}>
-          <Text style={[styles.title, { color: pastel.text }]} numberOfLines={1}>
-            {block.icon ? `${block.icon}  ` : ''}
-            {block.title}
-          </Text>
-          <Text style={styles.range}>
-            {formatClock(block.start)} - {formatClock(block.end)}
-          </Text>
-        </View>
+      <View style={styles.trackWrap}>
+        <View style={[styles.rail, { backgroundColor: colors.border }]} />
+        <View
+          style={[
+            styles.marker,
+            {
+              backgroundColor: isBreak ? colors.bg : colors.accent,
+              borderColor: isBreak ? colors.borderStrong : colors.accent,
+            },
+          ]}
+        />
+      </View>
+
+      <View
+        style={[
+          styles.block,
+          {
+            backgroundColor: isBreak ? 'transparent' : colors.blockStudy,
+            borderColor: isBreak ? colors.border : 'transparent',
+          },
+          isBreak && styles.blockBreak,
+        ]}
+      >
+        <Text
+          style={[
+            styles.title,
+            { color: isBreak ? colors.textMuted : colors.text },
+            !isBreak && styles.titleStudy,
+          ]}
+          numberOfLines={1}
+          maxFontSizeMultiplier={1.3}
+        >
+          {block.title}
+        </Text>
+        <Text style={[styles.duration, { color: colors.textMuted }]}>
+          {formatDuration(minutes)}
+        </Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
+  row: { flexDirection: 'row', alignItems: 'stretch', minHeight: 56 },
   time: {
-    width: 64,
+    width: 62,
     fontSize: fontSize.xs,
-    color: colors.textMuted,
-    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+    paddingTop: spacing.lg,
+  },
+  trackWrap: { width: 20, alignItems: 'center' },
+  rail: { width: 1, flex: 1 },
+  marker: {
+    position: 'absolute',
+    top: spacing.lg + 2,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    borderWidth: 1,
   },
   block: {
     flex: 1,
-    flexDirection: 'row',
     borderRadius: radius.md,
-    overflow: 'hidden',
-    minHeight: 54,
-    alignItems: 'stretch',
-  },
-  accent: { width: 5 },
-  content: {
-    flex: 1,
+    borderWidth: 1,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.sm,
     justifyContent: 'center',
   },
-  title: { fontSize: fontSize.md, fontWeight: '700' },
-  range: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
+  blockBreak: { borderStyle: 'dashed' },
+  title: { fontSize: fontSize.sm },
+  titleStudy: { fontWeight: '600' },
+  duration: { fontSize: fontSize.xs, marginTop: 2 },
 });

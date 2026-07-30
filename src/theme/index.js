@@ -1,53 +1,52 @@
-import { colors, pastelOrder } from './colors';
+// Static design tokens. Colours are NOT here — they depend on the active theme,
+// so read them with `useTheme()` from './ThemeContext'.
 
-// Spacing scale (multiples of 4) for consistent layout.
+// Generous spacing is what makes the layout feel calm; the scale is deliberately
+// coarse so screens stay consistent.
 export const spacing = {
   xs: 4,
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
+  xl: 24,
+  xxl: 32,
+  xxxl: 48,
 };
 
-// Corner radii — the design leans heavily on soft, rounded shapes.
+// Restrained radii — minimalism favours near-square corners over pills.
 export const radius = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 24,
+  sm: 6,
+  md: 10,
+  lg: 14,
   pill: 999,
 };
 
-// Typography sizes.
 export const fontSize = {
-  xs: 11,
-  sm: 13,
-  md: 15,
-  lg: 17,
-  xl: 20,
-  xxl: 24,
-  display: 28,
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+  xl: 22,
+  xxl: 28,
+  display: 34,
 };
 
-// Reusable soft shadow (works on iOS; elevation handles Android).
-export const shadow = {
-  card: {
-    shadowColor: '#5B4B8A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
-  },
-  soft: {
-    shadowColor: '#5B4B8A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
+// Weights used across the app. Hierarchy leans on these rather than colour.
+export const weight = {
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700',
 };
 
-export { colors, pastelOrder };
-export default { colors, spacing, radius, fontSize, shadow, pastelOrder };
+// Tight, deliberate letter spacing on large text.
+export const tracking = {
+  tight: -0.6,
+  normal: 0,
+  wide: 1.2,
+};
+
+export { ThemeProvider, useTheme, THEME_MODES } from './ThemeContext';
+export { light, dark } from './palettes';
+
+export default { spacing, radius, fontSize, weight, tracking };

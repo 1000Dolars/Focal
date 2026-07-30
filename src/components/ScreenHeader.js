@@ -1,29 +1,60 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, fontSize } from '../theme';
+import { useTheme, spacing, fontSize, tracking } from '../theme';
 
-// Top bar used across the inner screens: optional back button, centered title
-// and an optional right-side action (e.g. the "+" on the Tasks screen).
-export default function ScreenHeader({ title, onBack, rightIcon, onRightPress }) {
+// Minimal top bar: an optional back arrow, a left-aligned title and one
+// optional action. Titles sit left, not centred — it reads calmer and gives
+// long titles room.
+export default function ScreenHeader({
+  title,
+  subtitle,
+  onBack,
+  rightIcon,
+  onRightPress,
+  rightAccessibilityLabel = 'Acción',
+}) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.row}>
-      <View style={styles.side}>
-        {onBack ? (
-          <TouchableOpacity onPress={onBack} hitSlop={hit} style={styles.iconBtn}>
-            <Ionicons name="chevron-back" size={24} color={colors.textDark} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
+    <View>
+      {onBack ? (
+        <TouchableOpacity
+          onPress={onBack}
+          hitSlop={hit}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
+        </TouchableOpacity>
+      ) : null}
 
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
+      <View style={styles.row}>
+        <View style={styles.titleWrap}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            maxFontSizeMultiplier={1.3}
+            accessibilityRole="header"
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={[styles.subtitle, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
 
-      <View style={[styles.side, styles.right]}>
         {rightIcon ? (
-          <TouchableOpacity onPress={onRightPress} hitSlop={hit} style={styles.plusBtn}>
-            <Ionicons name={rightIcon} size={22} color={colors.white} />
+          <TouchableOpacity
+            onPress={onRightPress}
+            hitSlop={hit}
+            style={[styles.action, { borderColor: colors.border }]}
+            accessibilityRole="button"
+            accessibilityLabel={rightAccessibilityLabel}
+          >
+            <Ionicons name={rightIcon} size={20} color={colors.text} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -31,30 +62,29 @@ export default function ScreenHeader({ title, onBack, rightIcon, onRightPress })
   );
 }
 
-const hit = { top: 10, bottom: 10, left: 10, right: 10 };
+const hit = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const styles = StyleSheet.create({
+  back: { paddingTop: spacing.lg, paddingBottom: spacing.sm, alignSelf: 'flex-start' },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    minHeight: 52,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
   },
-  side: { width: 44, justifyContent: 'center' },
-  right: { alignItems: 'flex-end' },
-  iconBtn: { alignItems: 'flex-start' },
+  titleWrap: { flex: 1, paddingRight: spacing.md },
   title: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: fontSize.lg,
+    fontSize: fontSize.xxl,
     fontWeight: '700',
-    color: colors.textDark,
+    letterSpacing: tracking.tight,
   },
-  plusBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
+  subtitle: { fontSize: fontSize.sm, marginTop: 4 },
+  action: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

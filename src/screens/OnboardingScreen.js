@@ -4,106 +4,62 @@ import ScreenContainer from '../components/ScreenContainer';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
 import FeatureRow from '../components/FeatureRow';
-import { colors, spacing, fontSize, radius } from '../theme';
+import { useTheme, spacing, fontSize, tracking } from '../theme';
 
+// Every claim here matches what the app actually does.
 const FEATURES = [
   {
-    emoji: '🧠',
-    title: 'IA personalizada',
-    description: 'Crea tu horario ideal según tu personalidad y hábitos.',
-    tint: colors.primarySoft,
+    title: 'Un plan a tu ritmo',
+    description: 'Divide tus tareas en bloques de enfoque con descansos, según cómo estudias.',
   },
   {
-    emoji: '🗓️',
-    title: 'Cronogramas inteligentes',
-    description: 'Organiza tu día, semana o mes fácilmente.',
-    tint: colors.pastels.blue.bg,
+    title: 'Entregas a la vista',
+    description: 'Registra cuándo vence cada cosa y velo por día, semana o mes.',
   },
   {
-    emoji: '🏆',
-    title: 'Gamificación',
-    description: 'Gana puntos, desbloquea logros y mantén la motivación.',
-    tint: colors.pastels.yellow.bg,
+    title: 'Progreso real',
+    description: 'Suma puntos al completar y revisa tu actividad de los últimos 30 días.',
   },
   {
-    emoji: '📈',
-    title: 'Seguimiento',
-    description: 'Visualiza tu progreso y mejora cada día.',
-    tint: colors.pastels.green.bg,
-  },
-  {
-    emoji: '💜',
-    title: 'Donaciones',
-    description: 'Apoya nuestro proyecto y ayúdanos a crecer.',
-    tint: colors.pinkSoft,
+    title: 'Privado por diseño',
+    description: 'Todo se guarda en tu dispositivo. Sin cuentas, sin rastreo, sin internet.',
   },
 ];
 
-// First screen: brand intro, the two primary CTAs, and the feature list.
 export default function OnboardingScreen({ navigation }) {
+  const { colors } = useTheme();
+
   return (
     <ScreenContainer scroll edges={['top', 'bottom']} contentStyle={styles.content}>
       <View style={styles.hero}>
         <Logo size="large" />
-        <Text style={styles.tagline}>Tu plan. Tu ritmo. Tu éxito.</Text>
-        <Text style={styles.subtitle}>
-          La app que crea tu cronograma de estudio ideal según tu personalidad y te ayuda a
-          alcanzar tus metas.
+        <Text style={[styles.tagline, { color: colors.textMuted }]} maxFontSizeMultiplier={1.3}>
+          Una cosa a la vez.
         </Text>
       </View>
 
-      <View style={styles.actions}>
-        <Button label="Comenzar" onPress={() => navigation.navigate('Login')} />
-        <Button
-          label="♥  Donaciones"
-          variant="outline"
-          style={styles.donate}
-          onPress={() => navigation.navigate('Donations')}
-        />
-      </View>
-
-      <View style={styles.featuresCard}>
-        <Text style={styles.featuresTitle}>Características principales</Text>
-        {FEATURES.map((f) => (
-          <FeatureRow key={f.title} {...f} />
+      <View style={styles.features}>
+        {FEATURES.map((f, i) => (
+          <FeatureRow key={f.title} {...f} last={i === FEATURES.length - 1} />
         ))}
       </View>
+
+      <Button
+        label="Empezar"
+        onPress={() => navigation.navigate('Login')}
+        accessibilityLabel="Empezar a usar Focal"
+      />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: spacing.xxxl },
-  hero: { alignItems: 'center', paddingHorizontal: spacing.md },
+  content: { flexGrow: 1, paddingTop: spacing.xxxl * 1.5 },
+  hero: { alignItems: 'center' },
   tagline: {
     fontSize: fontSize.md,
-    color: colors.textBody,
-    fontWeight: '600',
     marginTop: spacing.md,
+    letterSpacing: tracking.normal,
   },
-  subtitle: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.md,
-    lineHeight: 20,
-    paddingHorizontal: spacing.sm,
-  },
-  actions: { marginTop: spacing.xxxl },
-  donate: { marginTop: spacing.md },
-  featuresCard: {
-    marginTop: spacing.xxxl,
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.xl,
-  },
-  featuresTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '800',
-    color: colors.primary,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
+  features: { flex: 1, marginTop: spacing.xxxl, marginBottom: spacing.xxl },
 });

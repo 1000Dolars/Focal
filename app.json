@@ -1,25 +1,32 @@
 {
   "expo": {
-    "name": "StudyFlow IA",
-    "slug": "studyflow-ia",
+    "name": "Focal",
+    "slug": "focal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "scheme": "studyflowia",
+    "userInterfaceStyle": "automatic",
+    "scheme": "focal",
+    "primaryColor": "#18181B",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.studyflow.ia"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.focal.studyapp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#7C5CFF"
+        "backgroundColor": "#18181B"
       },
-      "package": "com.studyflow.ia"
+      "package": "com.focal.studyapp",
+      "permissions": [],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,10 +40,20 @@
         {
           "image": "./assets/splash.png",
           "resizeMode": "contain",
-          "backgroundColor": "#7C5CFF"
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "image": "./assets/splash-dark.png",
+            "backgroundColor": "#0F0F11"
+          }
         }
       ],
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6d31fa24-5a51-485a-b89a-41f84f93fa9d"
+      }
+    },
+    "owner": "1000dolars"
   }
 }

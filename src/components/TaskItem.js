@@ -1,124 +1,150 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, fontSize, shadow } from '../theme';
+import { useTheme, radius, spacing, fontSize } from '../theme';
 import { formatDuration, dueLabel, isOverdue } from '../utils/time';
-import { getUrgency } from '../utils/urgency';
+import { getUrgency, urgencyStyle } from '../utils/urgency';
 
-// A single row in the "Mis tareas" list: a colored subject badge, the title
-// with an urgency pill and duration, a checkbox to complete it, and a delete
-// (trash) button. Tapping the row also toggles completion.
+// A task row: checkbox, title, optional description and a metadata line.
+// No coloured badges — urgency is a dot whose fill encodes the level.
 export default function TaskItem({ task, onToggle, onDelete }) {
-  const pastel = colors.pastels[task.color] || colors.pastels.purple;
+  const { colors } = useTheme();
   const urgency = getUrgency(task.urgency);
+  const u = urgencyStyle(colors, urgency.id);
   const overdue = isOverdue(task.dueDate) && !task.done;
 
+  const spoken = [
+    task.title,
+    task.description,
+    `urgencia ${urgency.label}`,
+    formatDuration(task.duration),
+    task.dueDate ? `entrega ${dueLabel(task.dueDate)}` : null,
+    task.done ? 'completada' : 'pendiente',
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   return (
-    <TouchableOpacity activeOpacity={0.8} onPress={onToggle} style={styles.row}>
-      <View style={[styles.badge, { backgroundColor: pastel.bg }]}>
-        <Text style={styles.icon}>{task.icon}</Text>
-      </View>
+    <View style={[styles.row, { borderBottomColor: colors.border }]}>
+      <TouchableOpacity
+        style={styles.main}
+        activeOpacity={0.6}
+        onPress={onToggle}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: !!task.done }}
+        accessibilityLabel={spoken}
+        accessibilityHint="Toca dos veces para marcar como completada o pendiente"
+      >
+        <View
+          style={[
+            styles.checkbox,
+            { borderColor: task.done ? colors.accent : colors.borderStrong },
+            task.done && { backgroundColor: colors.accent },
+          ]}
+        >
+          {task.done ? <Ionicons name="checkmark" size={13} color={colors.accentText} /> : null}
+        </View>
 
-      <View style={styles.body}>
-        <Text style={[styles.title, task.done && styles.done]} numberOfLines={1}>
-          {task.title}
-        </Text>
-        {task.description ? (
-          <Text style={styles.description} numberOfLines={1}>
-            {task.description}
+        <View style={styles.body}>
+          <Text
+            style={[
+              styles.title,
+              { color: task.done ? colors.textMuted : colors.text },
+              task.done && styles.struck,
+            ]}
+            numberOfLines={2}
+            maxFontSizeMultiplier={1.4}
+          >
+            {task.title}
           </Text>
-        ) : null}
-        <View style={styles.metaRow}>
-          <View style={[styles.urgencyPill, { backgroundColor: urgency.bg }]}>
-            <View style={[styles.urgencyDot, { backgroundColor: urgency.color }]} />
-            <Text style={[styles.urgencyText, { color: urgency.color }]}>{urgency.label}</Text>
-          </View>
-          <Text style={styles.duration}>{formatDuration(task.duration)}</Text>
-          {task.dueDate ? (
-            <View style={styles.dueWrap}>
-              <Ionicons
-                name="calendar-outline"
-                size={12}
-                color={overdue ? colors.pink : colors.textMuted}
-              />
-              <Text style={[styles.due, overdue && styles.dueOverdue]}>
-                {dueLabel(task.dueDate)}
-              </Text>
-            </View>
+
+          {task.description ? (
+            <Text
+              style={[styles.description, { color: colors.textMuted }]}
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+            >
+              {task.description}
+            </Text>
           ) : null}
-        </View>
-      </View>
 
-      {/* Complete */}
-      <TouchableOpacity onPress={onToggle} hitSlop={hit} style={styles.actionBtn}>
-        <View style={[styles.checkbox, task.done && styles.checkboxDone]}>
-          {task.done ? <Ionicons name="checkmark" size={15} color={colors.white} /> : null}
+          <View style={styles.metaRow}>
+            <View style={[styles.dot, { backgroundColor: u.dotBg, borderColor: u.dotBorder }]} />
+            <Text style={[styles.meta, { color: u.textColor, fontWeight: u.fontWeight }]}>
+              {urgency.label}
+            </Text>
+
+            <Text style={[styles.sep, { color: colors.border }]}>·</Text>
+            <Text style={[styles.meta, { color: colors.textMuted }]}>
+              {formatDuration(task.duration)}
+            </Text>
+
+            {task.dueDate ? (
+              <>
+                <Text style={[styles.sep, { color: colors.border }]}>·</Text>
+                <Text
+                  style={[
+                    styles.meta,
+                    { color: overdue ? colors.danger : colors.textMuted },
+                    overdue && styles.overdue,
+                  ]}
+                >
+                  {dueLabel(task.dueDate)}
+                </Text>
+              </>
+            ) : null}
+          </View>
         </View>
       </TouchableOpacity>
 
-      {/* Delete */}
-      <TouchableOpacity onPress={onDelete} hitSlop={hit} style={styles.actionBtn}>
-        <Ionicons name="trash-outline" size={20} color={colors.textMuted} />
+      <TouchableOpacity
+        onPress={onDelete}
+        hitSlop={hit}
+        style={styles.delete}
+        accessibilityRole="button"
+        accessibilityLabel={`Eliminar la tarea ${task.title}`}
+        accessibilityHint="Elimina esta tarea de tu lista"
+      >
+        <Ionicons name="close" size={18} color={colors.textMuted} />
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 }
 
-const hit = { top: 8, bottom: 8, left: 8, right: 8 };
+const hit = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    ...shadow.soft,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
   },
-  badge: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  main: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
+    marginTop: 2,
   },
-  icon: { fontSize: 18 },
   body: { flex: 1 },
-  title: { fontSize: fontSize.md, fontWeight: '600', color: colors.textDark },
-  done: { textDecorationLine: 'line-through', color: colors.textMuted },
-  description: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
-  urgencyPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    marginRight: spacing.sm,
+  title: { fontSize: fontSize.md, fontWeight: '500', lineHeight: 21 },
+  struck: { textDecorationLine: 'line-through' },
+  description: { fontSize: fontSize.sm, marginTop: 3 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 7, flexWrap: 'wrap' },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginRight: 6,
   },
-  urgencyDot: { width: 6, height: 6, borderRadius: 3, marginRight: 5 },
-  urgencyText: { fontSize: fontSize.xs, fontWeight: '700' },
-  duration: { fontSize: fontSize.xs, color: colors.textMuted },
-  dueWrap: { flexDirection: 'row', alignItems: 'center', marginLeft: spacing.sm },
-  due: { fontSize: fontSize.xs, color: colors.textMuted, marginLeft: 3 },
-  dueOverdue: { color: colors.pink, fontWeight: '700' },
-  actionBtn: { paddingHorizontal: spacing.sm, justifyContent: 'center' },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxDone: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
+  meta: { fontSize: fontSize.xs },
+  overdue: { fontWeight: '600' },
+  sep: { fontSize: fontSize.xs, marginHorizontal: 6 },
+  delete: { paddingLeft: spacing.md, paddingTop: spacing.xs },
 });

@@ -1,59 +1,45 @@
-# StudyFlow IA 📖✨
+# Focal
 
-> Tu plan. Tu ritmo. Tu éxito.
+> Una cosa a la vez.
 
-App móvil **multiplataforma (iOS y Android)** de productividad para estudiantes:
-crea un cronograma de estudio personalizado según tu personalidad, gestiona tus
-tareas, sigue tu progreso con gamificación y apoya el proyecto con donaciones.
+App móvil **multiplataforma (iOS y Android)** para organizar el estudio sin agobio:
+divide tus tareas en bloques de enfoque con descansos, según cómo estudias.
 
-Construida con **React Native + Expo** (un solo código fuente para iOS, Android y web).
+Construida con **React Native + Expo (SDK 56)**.
 
 ---
 
 ## 🚀 Cómo ejecutar
 
-Requisitos: **Node.js 18+** y la app **Expo Go** en tu teléfono (App Store / Play Store).
+Requisitos: **Node.js 18+** y la app **Expo Go**.
 
 ```bash
-cd StudyFlowIA
-npm install            # instala dependencias (solo la primera vez)
-npm start              # abre el servidor de Expo + código QR
+cd Focal
+npm install
+npm start
 ```
 
-Luego:
-
-- **Teléfono físico:** escanea el código QR con Expo Go (Android) o la cámara (iOS).
-- **Emulador Android:** pulsa `a` en la terminal (requiere Android Studio).
-- **Simulador iOS (solo macOS):** pulsa `i` (requiere Xcode).
-- **Navegador:** pulsa `w` (requiere `npx expo install react-dom react-native-web`).
-
-Atajos directos: `npm run android`, `npm run ios`, `npm run web`.
+- **Teléfono:** escanea el QR con Expo Go (Android) o la cámara (iOS).
+- **Emulador Android:** pulsa `a` · **Simulador iOS (macOS):** pulsa `i`.
 
 ---
 
-## 📦 Generar el APK (Android)
+## 📦 Generar el APK
 
-El APK se compila en la **nube de Expo (EAS Build)** — no necesitas instalar el SDK
-de Android ni JDK en tu equipo. Solo una cuenta gratuita de Expo
-(https://expo.dev/signup).
+Se compila en la nube (**EAS Build**), sin necesidad del SDK de Android local.
 
 ```bash
-cd StudyFlowIA
-npm run eas:login      # inicia sesión con tu cuenta Expo (una sola vez)
-npm run build:apk      # compila el APK en la nube (perfil "preview")
+npm run build:apk
 ```
 
-En la primera ejecución, EAS preguntará:
-- **Create EAS project?** → responde **Yes** (registra el `projectId` en `app.json`).
-- **Generate a new Android Keystore?** → responde **Yes** (EAS lo gestiona por ti).
+O publica una versión y deja que GitHub Actions lo haga solo:
 
-Al terminar (~10–20 min, puede haber cola en el plan gratis) verás una **URL de
-descarga** y un **QR**. Descarga el `.apk`, pásalo al teléfono e instálalo
-(activa *Instalar apps de origen desconocido*).
+```bash
+git tag v1.0.1 && git push --tags
+```
 
-> Configuración en [eas.json](StudyFlowIA/eas.json): el perfil **preview** produce
-> un **APK** instalable; **production** genera un **AAB** (`npm run build:aab`) para
-> publicar en Google Play.
+`preview` produce un **APK** instalable; `npm run build:aab` genera el **AAB** para
+Google Play. Configuración en [eas.json](eas.json).
 
 ---
 
@@ -61,53 +47,72 @@ descarga** y un **QR**. Descarga el `.apk`, pásalo al teléfono e instálalo
 
 | Pantalla | Descripción |
 |----------|-------------|
-| **Onboarding** | Bienvenida, branding y lista de características. CTAs *Comenzar* y *Donaciones*. |
-| **Inicio de sesión** | Solo nombre de usuario (sin contraseña); se guarda y personaliza el saludo. |
-| **Personalidad** | Elige tu arquetipo (Organizado / Creativo / Procrastinador) para personalizar el plan. |
-| **Inicio** | Saludo, tarjeta de cronograma inteligente, *Resumen de hoy* (tareas, estudio, puntos) y banner de donaciones. |
-| **Tareas** | El botón **+** abre un **pop-up** con nombre, descripción, duración, día de entrega (accesos rápidos o calendario) y urgencia. La lista se puede **ordenar** por urgencia, entrega o nombre. Completa (ganas puntos) o elimina con 🗑. |
-| **Cronograma** | Día: **entregas del día** + plan de estudio (ordenado por urgencia). Semana: entregas de los próximos 7 días. Mes: resumen + próximas entregas. |
-| **Amigos** | Tabla de clasificación: compites por puntos con tus amigos. Agrega amigos y sube en el ranking completando tareas. |
-| **Donaciones** | Montos fijos (S/ 5–50) o personalizado, con confirmación de agradecimiento. |
-| **Perfil** | Identidad, estadísticas de gamificación, personalidad e historial de donaciones. |
+| **Onboarding** | Marca, propuesta y lista de características. |
+| **Nombre** | Solo un nombre o apodo — sin contraseña, correo ni cuenta. |
+| **Ritmo** | Constante / Variado / Gradual — **cambia de verdad** cómo se arma el plan. |
+| **Hoy** | Saludo, cifras del día y el siguiente bloque de estudio. |
+| **Tareas** | El botón **+** abre un panel con título, notas, duración, entrega y urgencia. Ordena por urgencia, entrega o A–Z. |
+| **Plan** | Día (línea de tiempo + vencimientos), Semana (7 días) y Mes (actividad real + próximas entregas). |
+| **Ajustes** | Progreso, nombre, **apariencia (claro / oscuro / sistema)**, ritmo, legal y borrado de datos. |
 
-Barra de navegación inferior: **Inicio · Tareas · Cronograma · Amigos · Perfil**.
+Navegación inferior: **Hoy · Tareas · Plan · Ajustes**.
 
----
+### Cómo el ritmo cambia el plan
 
-## 🗂️ Estructura del proyecto
+| Ritmo | Bloque | Descansos | Orden |
+|---|---|---|---|
+| Constante | 50 min | 10 / 20 min | Agrupa la misma materia |
+| Variado | 40 min | 12 / 25 min | **Alterna** materias |
+| Gradual | 25 min | 8 / 20 min | Bloques cortos y frecuentes |
 
-```
-StudyFlowIA/
-├── App.js                     # Punto de entrada (providers + navegación)
-├── app.json                   # Configuración de Expo (iOS/Android/web)
-├── assets/                    # Íconos y splash
-├── scripts/make-assets.js     # Generador de assets placeholder
-└── src/
-    ├── theme/                 # Colores, espaciado, radios, tipografía, sombras
-    ├── data/seed.js           # Datos iniciales (tareas, personalidades, montos)
-    ├── context/AppContext.js  # Estado global (tareas, puntos, donaciones)
-    ├── utils/                 # Formato de tiempo + generador de cronograma
-    ├── components/            # UI reutilizable (Button, Card, TaskItem, ...)
-    ├── screens/               # Las 7 pantallas
-    └── navigation/            # Stack raíz + tabs inferiores
-```
+Las tareas largas se parten automáticamente en bloques de ese tamaño, y las de
+urgencia **Alta** se agendan primero.
 
 ---
 
 ## 🎨 Diseño
 
-- Fondo blanco, acentos **púrpura**, **rosa** para donaciones y **pasteles** para
-  el cronograma.
-- Formas redondeadas, sombras suaves, tipografía simple e ilustraciones con emoji.
-- Sistema de diseño centralizado en `src/theme/` para mantener consistencia y escalar.
+Sistema **monocromo**: blancos, negros y grises. No hay colores decorativos — la
+jerarquía se construye con tipografía, peso y espacio. El «acento» es la inversa
+del fondo, así que las acciones primarias son bloques sólidos de contraste.
 
-## ⚙️ Lógica
+- **Modo claro y oscuro**, con opción de seguir el sistema. Se recuerda entre sesiones.
+- La **urgencia** se codifica con relleno y peso (sólido / apagado / hueco), no con
+  color — también funciona para daltonismo.
+- Un único color semántico (`danger`), reservado para acciones destructivas y
+  entregas vencidas.
+- Todos los textos superan el contraste **WCAG AA** en ambos temas.
 
-- **Estado global** con React Context — todas las pantallas se mantienen sincronizadas.
-- El **cronograma se genera automáticamente** desde la lista de tareas
-  (`src/utils/schedule.js`), insertando descansos para reducir el estrés.
-- **Gamificación:** completar una tarea otorga puntos.
+Tokens en [`src/theme/`](src/theme). Los colores se leen con `useTheme()`, nunca
+por import directo.
 
-> Nota: el estado vive en memoria durante la sesión. Para persistencia entre
-> reinicios, añade `@react-native-async-storage/async-storage` en `AppContext`.
+---
+
+## 🗂️ Estructura
+
+```
+├── App.js                     # Providers (tema, estado, errores) + navegación
+├── app.json                   # Configuración de Expo
+├── PRIVACY.md                 # Política de privacidad (para alojar)
+├── AUDITORIA.md               # Auditoría pre-lanzamiento y remediación
+├── scripts/generate-assets.js # Genera ícono, splash y favicon
+└── src/
+    ├── theme/                 # Paletas claro/oscuro, ThemeContext, tokens
+    ├── data/seed.js           # Contenido inicial y ritmos de estudio
+    ├── context/AppContext.js  # Estado global + persistencia
+    ├── utils/                 # Tiempo, urgencia, cronograma, almacenamiento
+    ├── components/            # UI reutilizable
+    ├── screens/               # Las 7 pantallas
+    └── navigation/            # Stack raíz + pestañas
+```
+
+## 🔒 Privacidad
+
+Todo se guarda **solo en el dispositivo** (AsyncStorage). Sin peticiones de red,
+sin permisos del sistema, sin analítica ni publicidad. Ver [PRIVACY.md](PRIVACY.md).
+
+## 🖼️ Assets
+
+```bash
+node scripts/generate-assets.js
+```

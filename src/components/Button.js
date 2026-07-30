@@ -1,44 +1,55 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors, radius, spacing, fontSize, shadow } from '../theme';
+import { useTheme, radius, spacing, fontSize } from '../theme';
 
-// Versatile button with three visual variants used throughout the app.
-//   variant="primary"  -> solid purple (default)
-//   variant="pink"     -> solid rose, for donation calls-to-action
-//   variant="outline"  -> bordered, transparent fill
+// Three weights of action:
+//   solid   – inverse block, the single primary action on a screen
+//   outline – secondary, hairline border only
+//   ghost   – tertiary, text only
+//   danger  – destructive, the one place a hue is allowed
 export default function Button({
   label,
   onPress,
-  variant = 'primary',
+  variant = 'solid',
   disabled = false,
   loading = false,
   style,
   full = true,
+  accessibilityLabel,
+  accessibilityHint,
 }) {
-  const isOutline = variant === 'outline';
-  const bg =
-    variant === 'pink' ? colors.pink : variant === 'outline' ? 'transparent' : colors.primary;
-  const textColor = isOutline ? colors.primary : colors.white;
+  const { colors } = useTheme();
+
+  const palette = {
+    solid: { bg: colors.accent, fg: colors.accentText, border: colors.accent },
+    outline: { bg: 'transparent', fg: colors.text, border: colors.borderStrong },
+    ghost: { bg: 'transparent', fg: colors.textSecondary, border: 'transparent' },
+    danger: { bg: 'transparent', fg: colors.danger, border: colors.danger },
+  }[variant] || {};
 
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.7}
       onPress={onPress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={[
         styles.base,
-        { backgroundColor: bg },
-        isOutline && styles.outline,
-        !isOutline && shadow.soft,
+        { backgroundColor: palette.bg, borderColor: palette.border },
         full && styles.full,
         disabled && styles.disabled,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={textColor} />
+        <ActivityIndicator color={palette.fg} size="small" />
       ) : (
-        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        <Text style={[styles.label, { color: palette.fg }]} maxFontSizeMultiplier={1.4}>
+          {label}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -46,20 +57,17 @@ export default function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
+    borderWidth: 1,
     paddingVertical: 15,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   full: { alignSelf: 'stretch' },
-  outline: {
-    borderWidth: 1.5,
-    borderColor: colors.pink,
-  },
-  disabled: { opacity: 0.5 },
+  disabled: { opacity: 0.35 },
   label: {
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

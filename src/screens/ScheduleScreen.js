@@ -4,25 +4,26 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenContainer from '../components/ScreenContainer';
 import ScreenHeader from '../components/ScreenHeader';
 import ScheduleItem from '../components/ScheduleItem';
+import Stat from '../components/Stat';
 import { useApp } from '../context/AppContext';
 import {
   formatLongDate,
-  formatDuration,
   toDateKey,
+  parseDateKey,
   formatShortDate,
   weekdayName,
 } from '../utils/time';
-import { getUrgency } from '../utils/urgency';
-import { colors, spacing, fontSize, radius } from '../theme';
+import { getUrgency, urgencyStyle } from '../utils/urgency';
+import { useTheme, spacing, fontSize, radius, tracking } from '../theme';
 
 const VIEWS = ['Día', 'Semana', 'Mes'];
 
-// "Mi cronograma" — Día shows the generated timeline plus the deliveries due
-// that day; Semana lists deliveries for the next 7 days; Mes is an overview.
+// Plan — the day's timeline plus what is due, with week and month overviews.
 export default function ScheduleScreen() {
-  const { schedule, tasks, summary } = useApp();
+  const { colors } = useTheme();
+  const { schedule, tasks, summary, history } = useApp();
   const [view, setView] = useState('Día');
-  const [offset, setOffset] = useState(0); // days from today
+  const [offset, setOffset] = useState(0);
 
   const date = useMemo(() => {
     const d = new Date();
@@ -30,17 +31,16 @@ export default function ScheduleScreen() {
     return d;
   }, [offset]);
 
-  // Tasks due on the currently selected day.
   const deliveries = useMemo(() => {
     const key = toDateKey(date);
-    return tasks.filter((t) => t.dueDate === key);
+    return tasks.filter((t) => t.dueDate === key && !t.done);
   }, [tasks, date]);
 
-  const dateLabel = offset === 0 ? `Hoy, ${formatLongDate(date)}` : formatLongDate(date);
+  const dateLabel = offset === 0 ? 'Hoy' : formatLongDate(date);
 
   return (
     <ScreenContainer edges={['top']} contentStyle={styles.container}>
-      <ScreenHeader title="Mi cronograma" />
+      <ScreenHeader title="Plan" />
 
       {/* View switcher */}
       <View style={styles.tabs}>
@@ -49,120 +49,155 @@ export default function ScheduleScreen() {
           return (
             <TouchableOpacity
               key={v}
-              style={[styles.tab, active && styles.tabActive]}
               onPress={() => setView(v)}
+              style={styles.tab}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Vista por ${v.toLowerCase()}`}
             >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{v}</Text>
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: active ? colors.text : colors.textMuted },
+                  active && styles.tabTextActive,
+                ]}
+              >
+                {v}
+              </Text>
+              {active ? (
+                <View style={[styles.tabUnderline, { backgroundColor: colors.text }]} />
+              ) : null}
             </TouchableOpacity>
           );
         })}
       </View>
 
       {/* Date navigator */}
-      <View style={styles.dateRow}>
-        <TouchableOpacity hitSlop={hit} onPress={() => setOffset((o) => o - 1)}>
-          <Ionicons name="chevron-back" size={20} color={colors.textBody} />
+      <View style={[styles.dateRow, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          hitSlop={hit}
+          onPress={() => setOffset((o) => o - 1)}
+          accessibilityRole="button"
+          accessibilityLabel="Día anterior"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.textMuted} />
         </TouchableOpacity>
-        <Text style={styles.dateLabel}>{dateLabel}</Text>
-        <TouchableOpacity hitSlop={hit} onPress={() => setOffset((o) => o + 1)}>
-          <Ionicons name="chevron-forward" size={20} color={colors.textBody} />
+        <Text style={[styles.dateLabel, { color: colors.text }]} accessibilityRole="header">
+          {dateLabel}
+          <Text style={{ color: colors.textMuted }}>
+            {offset === 0 ? `  ${formatLongDate(date)}` : ''}
+          </Text>
+        </Text>
+        <TouchableOpacity
+          hitSlop={hit}
+          onPress={() => setOffset((o) => o + 1)}
+          accessibilityRole="button"
+          accessibilityLabel="Día siguiente"
+        >
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {view === 'Día' && <DayView schedule={schedule} deliveries={deliveries} />}
         {view === 'Semana' && <WeekView tasks={tasks} startDate={date} />}
-        {view === 'Mes' && <MonthView summary={summary} tasks={tasks} />}
+        {view === 'Mes' && <MonthView summary={summary} tasks={tasks} history={history} />}
       </ScrollView>
     </ScreenContainer>
   );
 }
 
-// A small "Entrega" chip listing one task due on a given day.
-function DeliveryRow({ task }) {
-  const urgency = getUrgency(task.urgency);
-  return (
-    <View style={styles.deliveryRow}>
-      <View style={[styles.deliveryDot, { backgroundColor: urgency.color }]} />
-      <Text style={styles.deliveryIcon}>{task.icon}</Text>
-      <Text style={styles.deliveryTitle} numberOfLines={1}>
-        {task.title}
-      </Text>
-      <Text style={[styles.deliveryTag, { color: urgency.color }]}>{urgency.label}</Text>
-    </View>
-  );
-}
-
-// --- Día -----------------------------------------------------------------
+// --- Día ------------------------------------------------------------------
 function DayView({ schedule, deliveries }) {
-  if (!schedule.length) {
-    return <Empty text="Agrega tareas para generar tu cronograma del día." />;
-  }
+  const { colors } = useTheme();
+
   return (
     <View>
-      {/* Deliveries due today */}
       {deliveries.length > 0 && (
-        <View style={styles.deliveryCard}>
-          <Text style={styles.deliveryHeader}>📌 Entregas de este día</Text>
-          {deliveries.map((task) => (
-            <DeliveryRow key={task.id} task={task} />
-          ))}
+        <View style={[styles.dueBox, { borderColor: colors.borderStrong }]}>
+          <Text style={[styles.dueHeader, { color: colors.textMuted }]}>Vence hoy</Text>
+          {deliveries.map((task) => {
+            const u = urgencyStyle(colors, getUrgency(task.urgency).id);
+            return (
+              <View key={task.id} style={styles.dueRow}>
+                <View
+                  style={[styles.dueDot, { backgroundColor: u.dotBg, borderColor: u.dotBorder }]}
+                />
+                <Text
+                  style={[styles.dueTitle, { color: colors.text }]}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={1.3}
+                >
+                  {task.title}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       )}
 
-      {/* Study timeline */}
-      <Text style={styles.timelineHeader}>Tu plan de estudio</Text>
-      {schedule.map((block) => (
-        <ScheduleItem key={block.id} block={block} />
-      ))}
+      {schedule.length ? (
+        schedule.map((block) => <ScheduleItem key={block.id} block={block} />)
+      ) : (
+        <Empty text="Sin tareas pendientes para planificar." />
+      )}
     </View>
   );
 }
 
-// --- Semana --------------------------------------------------------------
-// Shows the next 7 days starting from the selected date and the deliveries
-// due on each one.
+// --- Semana ---------------------------------------------------------------
 function WeekView({ tasks, startDate }) {
+  const { colors } = useTheme();
+
   const days = useMemo(() => {
     const out = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(startDate);
       d.setDate(startDate.getDate() + i);
       const key = toDateKey(d);
-      out.push({ date: d, key, deliveries: tasks.filter((t) => t.dueDate === key) });
+      out.push({ date: d, key, due: tasks.filter((t) => t.dueDate === key && !t.done) });
     }
     return out;
   }, [tasks, startDate]);
 
   return (
     <View>
-      {days.map(({ date, key, deliveries }) => (
-        <View key={key} style={styles.weekRow}>
-          <View style={[styles.weekDayBadge, deliveries.length > 0 && styles.weekDayBadgeActive]}>
-            <Text style={styles.weekDayText}>{weekdayName(date).slice(0, 3)}</Text>
-            <Text style={styles.weekDayNum}>{date.getDate()}</Text>
+      {days.map(({ date, key, due }) => (
+        <View key={key} style={[styles.weekRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.weekDate}>
+            <Text style={[styles.weekDay, { color: colors.textMuted }]}>
+              {weekdayName(date).slice(0, 3).toUpperCase()}
+            </Text>
+            <Text style={[styles.weekNum, { color: colors.text }]}>{date.getDate()}</Text>
           </View>
+
           <View style={styles.weekBody}>
-            {deliveries.length > 0 ? (
-              deliveries.map((t) => (
-                <Text key={t.id} style={styles.weekDelivery} numberOfLines={1}>
-                  {t.icon} {t.title}
+            {due.length ? (
+              due.map((t) => (
+                <Text
+                  key={t.id}
+                  style={[styles.weekItem, { color: colors.text }]}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={1.3}
+                >
+                  {t.title}
                 </Text>
               ))
             ) : (
-              <Text style={styles.weekDaySub}>Sin entregas</Text>
+              <Text style={[styles.weekEmpty, { color: colors.textMuted }]}>—</Text>
             )}
           </View>
-          <Text style={styles.weekEmoji}>{deliveries.length > 0 ? '📌' : '—'}</Text>
         </View>
       ))}
     </View>
   );
 }
 
-// --- Mes -----------------------------------------------------------------
-function MonthView({ summary, tasks }) {
-  const monthlyMinutes = summary.studyMinutes * 22; // ~22 study days
+// --- Mes ------------------------------------------------------------------
+// Real data only: recorded activity and genuine upcoming deadlines.
+function MonthView({ summary, tasks, history }) {
+  const { colors } = useTheme();
+
   const upcoming = useMemo(() => {
     const today = toDateKey(new Date());
     return tasks
@@ -170,192 +205,145 @@ function MonthView({ summary, tasks }) {
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   }, [tasks]);
 
+  const { completed, activeDays } = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffKey = toDateKey(cutoff);
+    const recent = Object.entries(history || {}).filter(([k, n]) => k >= cutoffKey && n > 0);
+    return {
+      completed: recent.reduce((s, [, n]) => s + n, 0),
+      activeDays: recent.length,
+    };
+  }, [history]);
+
   return (
     <View>
-      <View style={styles.monthCard}>
-        <Text style={styles.monthEmoji}>🗓️</Text>
-        <Text style={styles.monthTitle}>Resumen del mes</Text>
-        <View style={styles.monthStats}>
-          <MonthStat value={`${upcoming.length}`} label="Entregas" />
-          <MonthStat value={formatDuration(monthlyMinutes)} label="Estudio" />
-          <MonthStat value={`${summary.points}`} label="Puntos" />
-        </View>
-        <Text style={styles.monthHint}>
-          Mantén tu ritmo diario para desbloquear nuevos logros. 🏆
-        </Text>
+      <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Últimos 30 días</Text>
+      <View style={[styles.statsRow, { borderColor: colors.border }]}>
+        <Stat value={completed} label="Completadas" />
+        <View style={[styles.vDivider, { backgroundColor: colors.border }]} />
+        <Stat value={activeDays} label="Días activos" />
+        <View style={[styles.vDivider, { backgroundColor: colors.border }]} />
+        <Stat value={summary.points} label="Puntos" />
       </View>
 
-      {upcoming.length > 0 && (
-        <>
-          <Text style={styles.timelineHeader}>Próximas entregas</Text>
-          {upcoming.map((task) => {
-            const urgency = getUrgency(task.urgency);
-            return (
-              <View key={task.id} style={styles.upcomingRow}>
-                <View style={[styles.deliveryDot, { backgroundColor: urgency.color }]} />
-                <Text style={styles.deliveryIcon}>{task.icon}</Text>
-                <Text style={styles.deliveryTitle} numberOfLines={1}>
-                  {task.title}
-                </Text>
-                <Text style={styles.upcomingDate}>
-                  {formatShortDate(new Date(`${task.dueDate}T00:00:00`))}
-                </Text>
-              </View>
-            );
-          })}
-        </>
+      <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Próximas entregas</Text>
+      {upcoming.length ? (
+        upcoming.map((task) => (
+          <View key={task.id} style={[styles.upcomingRow, { borderBottomColor: colors.border }]}>
+            <Text
+              style={[styles.upcomingTitle, { color: colors.text }]}
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+            >
+              {task.title}
+            </Text>
+            <Text style={[styles.upcomingDate, { color: colors.textMuted }]}>
+              {formatShortDate(parseDateKey(task.dueDate))}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <Empty text="No tienes entregas programadas." />
       )}
     </View>
   );
 }
 
-function MonthStat({ value, label }) {
-  return (
-    <View style={styles.monthStat}>
-      <Text style={styles.monthStatValue}>{value}</Text>
-      <Text style={styles.monthStatLabel}>{label}</Text>
-    </View>
-  );
-}
-
 function Empty({ text }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>📅</Text>
-      <Text style={styles.emptyText}>{text}</Text>
+    <View style={[styles.emptyBox, { borderColor: colors.border }]}>
+      <Text style={[styles.emptyText, { color: colors.textMuted }]}>{text}</Text>
     </View>
   );
 }
 
-const hit = { top: 10, bottom: 10, left: 10, right: 10 };
+const hit = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: spacing.xl },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.inputBg,
-    borderRadius: radius.pill,
-    padding: 4,
-    marginTop: spacing.sm,
+
+  tabs: { flexDirection: 'row', marginBottom: spacing.lg },
+  tab: { marginRight: spacing.xl },
+  tabText: {
+    fontSize: fontSize.xs,
+    letterSpacing: tracking.wide,
+    textTransform: 'uppercase',
   },
-  tab: { flex: 1, paddingVertical: 9, borderRadius: radius.pill, alignItems: 'center' },
-  tabActive: { backgroundColor: colors.primary },
-  tabText: { fontSize: fontSize.sm, fontWeight: '700', color: colors.textBody },
-  tabTextActive: { color: colors.white },
+  tabTextActive: { fontWeight: '700' },
+  tabUnderline: { height: 1.5, marginTop: 5 },
 
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
     marginBottom: spacing.lg,
-    paddingHorizontal: spacing.sm,
   },
-  dateLabel: { fontSize: fontSize.md, fontWeight: '700', color: colors.textDark },
+  dateLabel: { fontSize: fontSize.sm, fontWeight: '600' },
 
   scroll: { paddingBottom: spacing.xxxl },
 
-  weekRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+  dueBox: {
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  weekDayBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  weekDayBadgeActive: { backgroundColor: colors.primary },
-  weekDayText: { fontSize: fontSize.xs, fontWeight: '800', color: colors.primary },
-  weekDayNum: { fontSize: fontSize.sm, fontWeight: '800', color: colors.textDark },
-  weekBody: { flex: 1 },
-  weekDayTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.textDark },
-  weekDaySub: { fontSize: fontSize.sm, color: colors.textMuted, marginTop: 2 },
-  weekDelivery: { fontSize: fontSize.sm, color: colors.textDark, fontWeight: '600', marginVertical: 1 },
-  weekEmoji: { fontSize: 22 },
-
-  // Deliveries (Día view)
-  deliveryCard: {
-    backgroundColor: colors.pinkSoft,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     padding: spacing.lg,
     marginBottom: spacing.xl,
   },
-  deliveryHeader: {
-    fontSize: fontSize.sm,
-    fontWeight: '800',
-    color: colors.pinkDark,
+  dueHeader: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    letterSpacing: tracking.wide,
+    textTransform: 'uppercase',
     marginBottom: spacing.md,
   },
-  deliveryRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  deliveryDot: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm },
-  deliveryIcon: { fontSize: 16, marginRight: spacing.sm },
-  deliveryTitle: { flex: 1, fontSize: fontSize.md, fontWeight: '600', color: colors.textDark },
-  deliveryTag: { fontSize: fontSize.xs, fontWeight: '700' },
+  dueRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
+  dueDot: { width: 7, height: 7, borderRadius: 4, borderWidth: 1, marginRight: spacing.md },
+  dueTitle: { flex: 1, fontSize: fontSize.sm, fontWeight: '500' },
 
-  timelineHeader: {
-    fontSize: fontSize.sm,
-    fontWeight: '800',
-    color: colors.textDark,
+  weekRow: { flexDirection: 'row', paddingVertical: spacing.lg, borderBottomWidth: 1 },
+  weekDate: { width: 52 },
+  weekDay: { fontSize: 10, letterSpacing: tracking.wide, fontWeight: '600' },
+  weekNum: { fontSize: fontSize.lg, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  weekBody: { flex: 1, justifyContent: 'center' },
+  weekItem: { fontSize: fontSize.sm, marginVertical: 1 },
+  weekEmpty: { fontSize: fontSize.sm },
+
+  sectionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    letterSpacing: tracking.wide,
+    textTransform: 'uppercase',
     marginBottom: spacing.md,
+    marginTop: spacing.xl,
   },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: spacing.lg,
+  },
+  vDivider: { width: 1, alignSelf: 'stretch', marginHorizontal: spacing.md },
 
-  // Upcoming deliveries (Mes view)
   upcomingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    justifyContent: 'space-between',
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
   },
-  upcomingDate: { fontSize: fontSize.sm, fontWeight: '700', color: colors.primary },
+  upcomingTitle: { flex: 1, fontSize: fontSize.sm, fontWeight: '500', paddingRight: spacing.md },
+  upcomingDate: { fontSize: fontSize.xs, fontVariant: ['tabular-nums'] },
 
-  monthCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
+  emptyBox: {
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.xxl,
+    borderStyle: 'dashed',
+    borderRadius: radius.md,
+    padding: spacing.xl,
     alignItems: 'center',
   },
-  monthEmoji: { fontSize: 40 },
-  monthTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '800',
-    color: colors.textDark,
-    marginTop: spacing.md,
-  },
-  monthStats: { flexDirection: 'row', marginTop: spacing.xl, width: '100%' },
-  monthStat: { flex: 1, alignItems: 'center' },
-  monthStatValue: { fontSize: fontSize.xl, fontWeight: '800', color: colors.primary },
-  monthStatLabel: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
-  monthHint: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-    lineHeight: 20,
-  },
-
-  empty: { alignItems: 'center', marginTop: spacing.xxxl },
-  emptyEmoji: { fontSize: 40, marginBottom: spacing.md },
-  emptyText: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xl,
-  },
+  emptyText: { fontSize: fontSize.sm, textAlign: 'center' },
 });
