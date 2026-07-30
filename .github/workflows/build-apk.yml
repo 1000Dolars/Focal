@@ -1,7 +1,8 @@
 name: Compilar APK
 
-# Se dispara al publicar una etiqueta de version (v1.0.1, v1.1.0, ...)
-# o manualmente desde la pestana Actions.
+# Etiqueta v*      -> compila y publica un Release con el APK adjunto.
+# Ejecucion manual -> compila y deja el APK como artefacto, sin publicar nada.
+# Asi el workflow se puede probar sin crear un Release de mentira.
 on:
   push:
     tags:
@@ -10,10 +11,9 @@ on:
 
 jobs:
   build:
-    name: Build en EAS y publicar Release
+    name: Build en EAS
     runs-on: ubuntu-latest
 
-    # Necesario para que la accion pueda crear el Release.
     permissions:
       contents: write
 
@@ -36,11 +36,42 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      # --wait bloquea hasta que EAS termina; --output descarga el APK aqui.
-      - name: Compilar el APK
-        run: eas build --platform android --profile preview --non-interactive --wait --output=focal.apk
+      # OJO: --output solo funciona en builds locales. Para builds de nube hay
+      # que pedir --json y descargar la URL del artefacto por separado.
+      - name: Compilar en EAS
+        id: build
+        run: |
+          set -euo pipefail
+          eas build --platform android --profile preview --non-interactive --wait --json > build.json
+          # --json devuelve un array de builds; tomamos el primero. Se usa node
+          # (ya disponible) en vez de jq para no depender de otra herramienta.
+          url=$(node -e "const b=require('./build.json');const x=Array.isArray(b)?b[0]:b;process.stdout.write((x&&x.artifacts&&x.artifacts.buildUrl)||'')")
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "No se pudo obtener la URL del APK. Salida de EAS:"
+            cat build.json
+            exit 1
+          fi
+          echo "Artefacto: $url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
-      - name: Adjuntar el APK al Release
+      - name: Descargar el APK
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o focal.apk "${{ steps.build.outputs.url }}"
+          ls -lh focal.apk
+
+      # Prueba manual: el APK queda descargable desde la pagina del run.
+      - name: Guardar como artefacto (ejecucion manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: focal-apk
+          path: focal.apk
+          retention-days: 7
+
+      # Etiqueta de version: publica el Release con el APK adjunto.
+      - name: Publicar el Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: focal.apk
@@ -48,6 +79,7 @@ jobs:
           body: |
             ## Focal ${{ github.ref_name }}
 
-            Descarga `focal.apk` desde este release e instalalo en tu telefono
-            Android. Instrucciones paso a paso en la
-            [pagina de descarga](https://1000dolars.github.io/Focal/).
+            Descarga `focal.apk` aqui abajo y abrelo en tu telefono Android.
+            El sistema pedira permitir la instalacion.
+
+            Mas informacion en [focal](https://1000dolars.github.io/Focal/).
